@@ -96,6 +96,16 @@ public class InAppBrowser extends CordovaPlugin {
     private boolean hadwareBackButton = true;
 
     /**
+     * Elli Rego added lines below to facilitate opening external links in system browser.
+     *
+     * Updated 02/18/16.
+     */
+    public String internalBaseUrl = null;
+    /**
+     * End of Elli Rego's additions.
+     */
+
+    /**
      * Executes the request and returns PluginResult.
      *
      * @param action the action to execute.
@@ -148,7 +158,6 @@ public class InAppBrowser extends CordovaPlugin {
                                 Method san = pm.getClass().getMethod("shouldAllowNavigation", String.class);
                                 shouldAllowNavigation = (Boolean)san.invoke(pm, url);
                             } catch (NoSuchMethodException e) {
-                            } catch (IllegalAccessException e) {
                             } catch (InvocationTargetException e) {
                             }
                         }
@@ -183,6 +192,7 @@ public class InAppBrowser extends CordovaPlugin {
                     // BLANK - or anything else
                     else {
                         Log.d(LOG_TAG, "in blank");
+                        setInternalBaseUrl(url);
                         result = showWebPage(url, features);
                     }
 
@@ -281,6 +291,24 @@ public class InAppBrowser extends CordovaPlugin {
     public void onDestroy() {
         closeDialog();
     }
+
+    /**
+     * Elli Rego added lines below to facilitate opening external links in system browser.
+     *
+     * Updated 02/18/16.
+     */
+    private void setInternalBaseUrl(String url) {
+      String trim;
+      if (url.indexOf("www.") > -1) {
+        trim = "www.";
+      } else trim = "//";
+
+      String trimmedUrl = url.substring(url.indexOf(trim) + trim.length());
+      internalBaseUrl = trimmedUrl.substring(0, trimmedUrl.indexOf("/"));
+    }
+    /**
+     * End of Elli Rego's additions.
+     */
 
     /**
      * Inject an object (script or style) into the InAppBrowser WebView.
@@ -791,6 +819,23 @@ public class InAppBrowser extends CordovaPlugin {
         }
 
         /**
+         * Elli Rego added lines below to open external links in system browser.
+         *
+         * Updated 02/18/16.
+         */
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            if (isExternalUrl(url)) {
+              openExternal(url);
+              return true;
+            }
+            return false;
+        }
+        /**
+         * End of Elli Rego's additions.
+         */
+
+        /**
          * Notify the host application that a page has started loading.
          *
          * @param view          The webview initiating the callback.
@@ -799,6 +844,7 @@ public class InAppBrowser extends CordovaPlugin {
         @Override
         public void onPageStarted(WebView view, String url,  Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
+
             String newloc = "";
             if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("file:")) {
                 newloc = url;
@@ -935,5 +981,22 @@ public class InAppBrowser extends CordovaPlugin {
             // By default handle 401 like we'd normally do!
             super.onReceivedHttpAuthRequest(view, handler, host, realm);
         }
+
+        /**
+         * Elli Rego added lines below to facilitate opening external links in system browser.
+         *
+         * Updated 02/18/16.
+         */
+        private boolean isExternalUrl(String url) {
+          if ((url.indexOf("http") == 0) && (url.indexOf(internalBaseUrl) == -1)) {
+            return true;
+          }
+          return false;
+        }
+        /**
+         * End of Elli Rego's additions.
+         */
     }
+
+
 }
