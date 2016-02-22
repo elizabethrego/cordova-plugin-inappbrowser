@@ -158,6 +158,7 @@ public class InAppBrowser extends CordovaPlugin {
                                 Method san = pm.getClass().getMethod("shouldAllowNavigation", String.class);
                                 shouldAllowNavigation = (Boolean)san.invoke(pm, url);
                             } catch (NoSuchMethodException e) {
+                            } catch (IllegalAccessException e) {
                             } catch (InvocationTargetException e) {
                             }
                         }
