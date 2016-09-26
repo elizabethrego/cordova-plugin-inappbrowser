@@ -829,7 +829,20 @@ public class InAppBrowser extends CordovaPlugin {
             if (isExternalUrl(url)) {
               openExternal(url);
               return true;
-            }
+            } else if (url.startsWith(WebView.SCHEME_TEL)) {
+              try {
+                    Intent intent = new Intent(Intent.ACTION_DIAL);
+                    intent.setData(Uri.parse(url));
+                    cordova.getActivity().startActivity(intent);
+                    return true;
+                } catch (android.content.ActivityNotFoundException e) {
+                    LOG.e(LOG_TAG, "Error dialing " + url + ": " + e.toString());
+          
+                    // Just because we couldn't dial the number doesn't 
+                    // mean we want to load a dead page.
+                    return true; 
+                }
+            } 
             return false;
         }
         /**
@@ -849,16 +862,6 @@ public class InAppBrowser extends CordovaPlugin {
             String newloc = "";
             if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("file:")) {
                 newloc = url;
-            }
-            // If dialing phone (tel:5551212)
-            else if (url.startsWith(WebView.SCHEME_TEL)) {
-                try {
-                    Intent intent = new Intent(Intent.ACTION_DIAL);
-                    intent.setData(Uri.parse(url));
-                    cordova.getActivity().startActivity(intent);
-                } catch (android.content.ActivityNotFoundException e) {
-                    LOG.e(LOG_TAG, "Error dialing " + url + ": " + e.toString());
-                }
             }
 
             else if (url.startsWith("geo:") || url.startsWith(WebView.SCHEME_MAILTO) || url.startsWith("market:")) {
@@ -901,7 +904,7 @@ public class InAppBrowser extends CordovaPlugin {
                     LOG.e(LOG_TAG, "Error sending sms " + url + ":" + e.toString());
                 }
             }
-            else {
+            else if (!url.startsWith(WebView.SCHEME_TEL)) {
                 newloc = "http://" + url;
             }
 
