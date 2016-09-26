@@ -91,7 +91,12 @@
 @property (nonatomic, strong) IBOutlet UIToolbar* toolbar;
 
 @property (nonatomic, weak) id <CDVScreenOrientationDelegate> orientationDelegate;
-@property (nonatomic, weak) CDVInAppBrowser* navigationDelegate;
+
+// Elli Rego added line below to mitigate Filter Tabs issue
+// Original line is below
+//@property (nonatomic, weak) CDVInAppBrowser* navigationDelegate;
+@property (nonatomic, strong) CDVInAppBrowser* navigationDelegate;
+
 @property (nonatomic) NSURL* currentURL;
 
 - (void)close;
