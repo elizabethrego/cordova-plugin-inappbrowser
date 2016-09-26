@@ -48,9 +48,6 @@
 
 @implementation CDVInAppBrowser
 
-// Elli Rego added line below to track whether browser was hidden, 01/26/16
-BOOL browserHidden = NO;
-
 - (void)pluginInitialize
 {
     _previousStatusBarStyle = -1;
@@ -71,20 +68,6 @@ BOOL browserHidden = NO;
     // Things are cleaned up in browserExit.
     [self.inAppBrowserViewController close];
 }
-
-/**
- * Elli Rego added lines facilitate hiding the browser.
- *
- * Updated 01/26/16.
- */
-- (void)hide:(CDVInvokedUrlCommand*)command
-{
-    [self.inAppBrowserViewController hide];
-    browserHidden = YES;
-}
-/**
- * End of Elli Rego's additions.
- */
 
 - (BOOL) isSystemUrl:(NSURL*)url
 {
@@ -225,48 +208,63 @@ BOOL browserHidden = NO;
         [self show:nil];
     }
 }
-
+/**
+ * Elli Rego added functions below to match existing 'hide' PR: https://github.com/herrevilkitten/cordova-plugin-inappbrowser/commit/573b1bdc777370a8af860a5b6044e8ddb3f69932
+ *
+ * Updated 03/14/16
+ */
 - (void)show:(CDVInvokedUrlCommand*)command
 {
     if (self.inAppBrowserViewController == nil) {
         NSLog(@"Tried to show IAB after it was closed.");
         return;
     }
-    
     if (_previousStatusBarStyle != -1) {
-        /**
-         * Elli Rego added lines below to allow browser to show after being hidden.
-         *
-         * Updated 01/26/16.
-         */
-        if (!browserHidden) {
-            // This was the original code inside the above condition
-            NSLog(@"Tried to show IAB while already shown");
-            return;
-        } else {
-            browserHidden = NO;
-        }
-        /**
-         * End of Elli Rego's additions.
-         */
+        NSLog(@"Tried to show IAB while already shown");
+        return;
     }
     
     _previousStatusBarStyle = [UIApplication sharedApplication].statusBarStyle;
     
-    __block CDVInAppBrowserNavigationController* nav = [[CDVInAppBrowserNavigationController alloc]
-                                                        initWithRootViewController:self.inAppBrowserViewController];
+    CDVInAppBrowserNavigationController* nav = [[CDVInAppBrowserNavigationController alloc]
+                                                initWithRootViewController:self.inAppBrowserViewController];
     nav.orientationDelegate = self.inAppBrowserViewController;
     nav.navigationBarHidden = YES;
-    
-    __weak CDVInAppBrowser* weakSelf = self;
-    
     // Run later to avoid the "took a long time" log message.
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (weakSelf.inAppBrowserViewController != nil) {
-            [weakSelf.viewController presentViewController:nav animated:YES completion:nil];
+        if (self.inAppBrowserViewController != nil) {
+            [self.viewController presentViewController:nav animated:YES completion:nil];
         }
     });
 }
+
+
+- (void)hide:(CDVInvokedUrlCommand*)command
+{
+    if (self.inAppBrowserViewController == nil) {
+        NSLog(@"Tried to hide IAB after it was closed.");
+        return;
+        
+        
+    }
+    if (_previousStatusBarStyle == -1) {
+        NSLog(@"Tried to hide IAB while already hidden");
+        return;
+    }
+    
+    _previousStatusBarStyle = [UIApplication sharedApplication].statusBarStyle;
+    
+    // Run later to avoid the "took a long time" log message.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.inAppBrowserViewController != nil) {
+            _previousStatusBarStyle = -1;
+            [self.viewController dismissViewControllerAnimated:YES completion:nil];
+        }
+    });
+}
+/**
+ * End of Elli Rego's additions.
+ */
 
 - (void)openInCordovaWebView:(NSURL*)url withOptions:(NSString*)options
 {
@@ -645,9 +643,30 @@ BOOL browserHidden = NO;
     
     self.webView.scalesPageToFit = NO;
     self.webView.userInteractionEnabled = YES;
+    /**
+     * Elli Rego added line below to make loading spinner larger.
+     *
+     * Updated 03/14/16.
+     */
     
-    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+    // Original line is below
+    //self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGrey];
+    
+    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    /**
+     * End of Elli Rego's additions.
+     */
+    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
     self.spinner.alpha = 1.000;
+    /**
+     * Elli Rego added line below to change loading spinner color.
+     *
+     * Updated 03/14/16.
+     */
+    self.spinner.color = [UIColor colorWithRed:0.29 green:0.565 blue:0.8863 alpha:1.0];
+    /**
+     * End of Elli Rego's additions.
+     */
     self.spinner.autoresizesSubviews = YES;
     self.spinner.autoresizingMask = (UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleRightMargin);
     self.spinner.clearsContextBeforeDrawing = NO;
@@ -907,30 +926,6 @@ BOOL browserHidden = NO;
         }
     });
 }
-
-/**
- * Elli Rego added lines facilitate hiding the browser.
- *
- * Updated 02/02/16.
- */
-- (void) hide
-{
-    __weak UIViewController* weakSelf = self;
-    
-    // Run later to avoid the "took a long time" log message.
-    // Actually, DO NOT run later because it causes a big issue
-    // when trying to show Card.IO view.
-    //dispatch_async(dispatch_get_main_queue(), ^{
-    if ([weakSelf respondsToSelector:@selector(presentingViewController)]) {
-        [[weakSelf presentingViewController] dismissViewControllerAnimated:YES completion:nil];
-    } else {
-        [[weakSelf parentViewController] dismissViewControllerAnimated:YES completion:nil];
-    }
-    //});
-}
-/**
- * End of Elli Rego's additions.
- */
 
 - (void)navigateTo:(NSURL*)url
 {
